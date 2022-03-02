@@ -17,7 +17,7 @@ export default async function handler(
       {
         headers: {
           "Content-Type": "application/json",
-          "Shortcut-Token": "5a1f1708-0f86-4a18-9097-1928bfbd535c",
+          "Shortcut-Token": process.env.NEXT_PUBLIC_SHORTCUT_API_TOKEN || "",
         },
       }
     );

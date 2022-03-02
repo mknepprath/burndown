@@ -95,25 +95,23 @@ const Home: NextPage = () => {
       ]);
       setStoryIndex((i) => Math.min(i + 1, stories.length));
     }
-  }, "KeyN");
+  }, "KeyF");
 
   const handleActions = () => {
     actions.forEach((action) => {
-      console.log("PUT", action);
-      // fetch(`/api/stories/${action.id}`, {
-      //   body: JSON.stringify({
-      //     estimate: action.estimate,
-      //     archive: action.archive,
-      //   }),
-      //   headers: {
-      //     "Content-Type": "application/json",
-      //   },
-      //   method: "PUT",
-      // });
+      fetch(`/api/stories/${action.id}`, {
+        body: JSON.stringify({
+          archived: action.archive,
+          estimate: action.estimate,
+        }),
+        headers: {
+          "Content-Type": "application/json",
+          "Shortcut-Token": process.env.NEXT_PUBLIC_SHORTCUT_API_TOKEN || "",
+        },
+        method: "PUT",
+      });
     });
   };
-
-  if (!stories) return null;
 
   return (
     <div className={styles.container}>
@@ -134,74 +132,78 @@ const Home: NextPage = () => {
           </a>
         </h1>
 
-        <p className={styles.description}>
-          A tool for rapid ticket triaging.
-          <br />
-          Press <code className={styles.code}>A</code> to archive,{" "}
-          <code className={styles.code}>S</code>/
-          <code className={styles.code}>D</code> to toggle the estimate, or
-          <code className={styles.code}>N</code> to move to the next ticket.
-        </p>
+        {stories?.length ? (
+          <>
+            <p className={styles.description}>
+              A tool for rapid ticket triaging.
+              <br />
+              Press <code className={styles.code}>A</code> to archive,{" "}
+              <code className={styles.code}>S</code>/
+              <code className={styles.code}>D</code> to toggle the estimate, or
+              <code className={styles.code}>F</code> to move to the next ticket.
+            </p>
 
-        {actions.length < stories?.length ? (
-          <div className={styles.grid}>
-            <a
-              href={stories[storyIndex].app_url}
-              className={styles.card}
-              key={stories[storyIndex].id}
-              target="_blank"
-              rel="noopener noreferrer"
-            >
-              <h2>
-                {actions[storyIndex]?.archive ? (
-                  <>
-                    <del>{stories[storyIndex].name}</del> 🗑
-                  </>
-                ) : (
-                  stories[storyIndex].name
-                )}
-              </h2>
-              <p>Description: {stories[storyIndex].description}</p>
-              <p>
-                Deadline:{" "}
-                {stories[storyIndex].deadline
-                  ? formatDistanceToNow(
-                      parseISO(stories[storyIndex].deadline),
-                      {
-                        addSuffix: true,
-                      }
-                    )
-                  : "none"}
-              </p>
-              <p>
-                Estimate: {stories[storyIndex].estimate || 0}
-                {actions[storyIndex]?.estimate
-                  ? ` → ${actions[storyIndex].estimate}`
-                  : ""}
-              </p>
-              <p>Epic ID: {stories[storyIndex].epic_id}</p>
-            </a>
-            {stories
-              .slice(storyIndex + 1, storyIndex + 4)
-              .map((story, index) => (
+            {actions.length < stories?.length ? (
+              <div className={styles.grid}>
                 <a
-                  href={story.app_url}
+                  href={stories[storyIndex].app_url}
                   className={styles.card}
-                  key={story.id}
-                  style={{ opacity: 0.7 - index * 0.3 }}
+                  key={stories[storyIndex].id}
                   target="_blank"
                   rel="noopener noreferrer"
                 >
-                  <h2>{story.name} &rarr;</h2>
-                  <p>Description: {story.description}</p>
+                  <h2>
+                    {actions[storyIndex]?.archive ? (
+                      <>
+                        <del>{stories[storyIndex].name}</del> 🔥
+                      </>
+                    ) : (
+                      stories[storyIndex].name
+                    )}
+                  </h2>
+                  <p>Description: {stories[storyIndex].description}</p>
+                  <p>
+                    Deadline:{" "}
+                    {stories[storyIndex].deadline
+                      ? formatDistanceToNow(
+                          parseISO(stories[storyIndex].deadline),
+                          {
+                            addSuffix: true,
+                          }
+                        )
+                      : "none"}
+                  </p>
+                  <p>
+                    Estimate: {stories[storyIndex].estimate || 0}
+                    {actions[storyIndex]?.estimate
+                      ? ` → ${actions[storyIndex].estimate}`
+                      : ""}
+                  </p>
+                  <p>Epic ID: {stories[storyIndex].epic_id}</p>
                 </a>
-              ))}
-          </div>
-        ) : (
-          <button className={styles.button} onClick={handleActions}>
-            Blast Off!
-          </button>
-        )}
+                {stories
+                  .slice(storyIndex + 1, storyIndex + 4)
+                  .map((story, index) => (
+                    <a
+                      href={story.app_url}
+                      className={styles.card}
+                      key={story.id}
+                      style={{ opacity: 0.7 - index * 0.3 }}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                    >
+                      <h2>{story.name} &rarr;</h2>
+                      <p>Description: {story.description}</p>
+                    </a>
+                  ))}
+              </div>
+            ) : (
+              <button className={styles.button} onClick={handleActions}>
+                Blast Off!
+              </button>
+            )}
+          </>
+        ) : null}
       </main>
 
       <footer className={styles.footer}>
