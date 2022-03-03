@@ -18,12 +18,13 @@ const Home: NextPage = () => {
   });
   const [storyIndex, setStoryIndex] = useState(0);
   const [actions, setActions] = useState<
-    { archive: boolean; estimate: number; id: number }[]
+    { archived?: boolean; estimate?: number; id: number }[]
   >([]);
+  const [success, setSuccess] = useState("");
 
   useEffect(() => {
     if (stories) {
-      setActions([{ id: stories[0].id, archive: false, estimate: 0 }]);
+      setActions([{ id: stories[0].id }]);
     }
   }, [stories]);
 
@@ -33,13 +34,12 @@ const Home: NextPage = () => {
       const action = actions.find((a) => a.id === id);
       if (action) {
         setActions(
-          actions.map((a) => (a.id === id ? { ...a, archive: !a.archive } : a))
+          actions.map((a) =>
+            a.id === id ? { ...a, archived: !a.archived } : a
+          )
         );
       } else {
-        setActions([
-          ...actions,
-          { archive: true, estimate: stories[storyIndex].estimate, id },
-        ]);
+        setActions([...actions, { archived: true, id }]);
       }
     }
   }, "KeyA");
@@ -51,14 +51,15 @@ const Home: NextPage = () => {
       if (action) {
         setActions(
           actions.map((a) =>
-            a.id === id ? { ...a, estimate: Math.max(a.estimate - 1, 0) } : a
+            a.id === id
+              ? { ...a, estimate: Math.max((a.estimate || 0) - 1, 0) }
+              : a
           )
         );
       } else {
         setActions([
           ...actions,
           {
-            archive: false,
             estimate: Math.max(stories[storyIndex].estimate - 1, 0),
             id,
           },
@@ -74,13 +75,13 @@ const Home: NextPage = () => {
       if (action) {
         setActions(
           actions.map((a) =>
-            a.id === id ? { ...a, estimate: a.estimate + 1 } : a
+            a.id === id ? { ...a, estimate: (a.estimate || 0) + 1 } : a
           )
         );
       } else {
         setActions([
           ...actions,
-          { archive: false, estimate: stories[storyIndex].estimate + 1, id },
+          { estimate: stories[storyIndex].estimate + 1, id },
         ]);
       }
     }
@@ -89,34 +90,43 @@ const Home: NextPage = () => {
   useKeydown(() => {
     if (stories?.[storyIndex + 1]) {
       const id = stories[storyIndex + 1].id;
-      setActions([
-        ...actions,
-        { archive: false, estimate: stories[storyIndex + 1].estimate, id },
-      ]);
+      setActions([...actions, { id }]);
       setStoryIndex((i) => Math.min(i + 1, stories.length));
     }
   }, "KeyF");
 
+  useKeydown(() => {
+    if (stories && actions.length >= stories.length) {
+      handleActions();
+    }
+  }, "Enter");
+
   const handleActions = () => {
     actions.forEach((action) => {
-      fetch(`/api/stories/${action.id}`, {
-        body: JSON.stringify({
-          archived: action.archive,
-          estimate: action.estimate,
-        }),
-        headers: {
-          "Content-Type": "application/json",
-          "Shortcut-Token": process.env.NEXT_PUBLIC_SHORTCUT_API_TOKEN || "",
-        },
-        method: "PUT",
-      });
+      if (action.archived != null || action.estimate != null) {
+        const { id, ...body } = action;
+        fetch(`/api/stories/${id}`, {
+          body: JSON.stringify(body),
+          headers: {
+            "Content-Type": "application/json",
+            "Shortcut-Token": process.env.NEXT_PUBLIC_SHORTCUT_API_TOKEN || "",
+          },
+          method: "PUT",
+        })
+          .then((r) => r.json())
+          .then((r) => {
+            setSuccess("Stories updated!");
+            console.log("action result", r);
+          })
+          .catch((e) => console.error("action error", e));
+      }
     });
   };
 
   return (
     <div className={styles.container}>
       <Head>
-        <title>Burndown by Michael Knepprath</title>
+        <title>BURNDOWN by Michael Knepprath</title>
         <meta name="description" content="A tool for rapid ticket triaging." />
         <link rel="icon" href="/favicon.ico" />
       </Head>
@@ -153,7 +163,7 @@ const Home: NextPage = () => {
                   rel="noopener noreferrer"
                 >
                   <h2>
-                    {actions[storyIndex]?.archive ? (
+                    {actions[storyIndex]?.archived ? (
                       <>
                         <del>{stories[storyIndex].name}</del> 🔥
                       </>
@@ -198,9 +208,12 @@ const Home: NextPage = () => {
                   ))}
               </div>
             ) : (
-              <button className={styles.button} onClick={handleActions}>
-                Blast Off!
-              </button>
+              <>
+                <button className={styles.button} onClick={handleActions}>
+                  🔥 Publish Your Changes 🔥
+                </button>
+                {success && <p>{success}</p>}
+              </>
             )}
           </>
         ) : null}
